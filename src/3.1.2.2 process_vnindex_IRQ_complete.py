@@ -1,17 +1,61 @@
-### 3.1.2 process_vnindex_IRQ_complete.py
+### 3.1.2.2 process_vnindex_IRQ_complete.py - tại bước Kiểm định sau cùng
+### Bổ sung dùng HSG_log thay cho HSG & lưu vào cột HSG_Cleaned cho các xử lý tiếp theo
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 # Import files for downloading in Colab
 from google.colab import files
-
 # Đọc dữ liệu từ file CSV
 try:
-    df = pd.read_csv('VNINDEX.csv', parse_dates=[0], index_col=0)
+    # Attempt to read the file, parsing the first column as dates
+    # Adjust the date_format based on your actual CSV file's date format
+    # Common formats: '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y'
+    # The format in the original code '%mm/%dd/%yyyy' is likely incorrect.
+    # Let's assume a common format like '%m/%d/%Y' or '%d/%m/%Y' first.
+    # If your dates are like '01/01/2023', use '%m/%d/%Y'.
+    # If your dates are like '01/Jan/2023', you might not need a format, pandas can often infer.
+    # **IMPORTANT**: You need to adjust 'date_format' below to match your CSV file's date format.
+    df = pd.read_csv('VNINDEX.csv')
+
+    # Assuming the first column is the date column. Adjust index [0] if not.
+    date_column_name = df.columns[0]
+
+    # Convert the date column to datetime objects
+    # Use the correct format string based on your file
+    # Example: df[date_column_name] = pd.to_datetime(df[date_column_name], format='%m/%d/%Y', errors='coerce')
+    # If the format is unknown or variable, let pandas infer it:
+    df[date_column_name] = pd.to_datetime(df[date_column_name], errors='coerce')
+
+
+    # Check if date parsing was successful
+    if df[date_column_name].isna().all():
+        print(f"Lỗi: Không thể parse cột '{date_column_name}' thành định dạng ngày. Vui lòng kiểm tra định dạng ngày trong file CSV.")
+        df = pd.DataFrame() # Create an empty DataFrame
+    else:
+        # Set the date column as the index
+        df.set_index(date_column_name, inplace=True)
+        # Drop the original date column if it wasn't used as index
+        if date_column_name in df.columns:
+            df.drop(columns=[date_column_name], inplace=True)
+
+
 except FileNotFoundError:
     print("Lỗi: Không tìm thấy file 'VNINDEX.csv'. Vui lòng cung cấp đường dẫn chính xác hoặc tải file lên.")
-    # Thoát script hoặc xử lý lỗi khác nếu file không tồn tại
-    exit(1) # Thoát script
+    df = pd.DataFrame() # Tạo DataFrame rỗng để tránh lỗi NameError sau này
+except Exception as e:
+    print(f"Đã xảy ra lỗi khi đọc hoặc xử lý file CSV: {e}")
+    df = pd.DataFrame() # Tạo DataFrame rỗng
+
+# --- Handle empty DataFrame early ---
+if df.empty:
+    print("Không có dữ liệu hợp lệ được đọc. Không thể tiến hành xử lý.")
+    # You might want to exit or just skip the rest of the processing
+    # exit(1) # Uncomment to exit
+    # If not exiting, the rest of the code needs to handle an empty df
+    pass # Continue but with an empty df
+
+# Đặt cột ngày đã chuẩn hóa làm index
+#df.set_index(date_column_name, inplace=True)
 
 # --- Add this block to handle duplicate indices ---
 # Kiểm tra và loại bỏ các dòng có index (ngày) bị trùng lặp
@@ -78,6 +122,8 @@ def remove_outliers_iqr(df, column):
 numerical_cols_after_dedup = df.select_dtypes(include=np.number).columns.tolist()
 for col in numerical_cols_after_dedup:
     df = remove_outliers_iqr(df, col)
+# Bổ sung dùng HSG_log thay cho HSG & lưu vào cột HSG_Cleaned cho các xử lý tiếp theo
+df['HSG_Cleaned'] = np.log1p(df['HSG'])
 
 # Kiểm tra NaN sau xử lý ngoại lai (chỉ với các cột _Cleaned)
 cleaned_columns_check_nan = [col for col in df.columns if col.endswith('_Cleaned')]
@@ -128,18 +174,26 @@ try:
 except Exception as e:
     print(f"Không thể tự động tải xuống {output_filename_iqr_cleaned}. Vui lòng tải thủ công.")
 
-
 # Bước 2: Tạo DataFrame chỉ chứa cột _Cleaned
 cleaned_columns = [col for col in df.columns if col.endswith('_Cleaned')]
-df_cleaned = df[cleaned_columns].copy()
-# Đổi tên cột _Cleaned về tên gốc
-df_cleaned.columns = [col.replace('_Cleaned', '') for col in df_cleaned.columns]
+# Ensure cleaned_columns is not empty before creating df_cleaned
+if cleaned_columns:
+    df_cleaned = df[cleaned_columns].copy()
+    # Đổi tên cột _Cleaned về tên gốc
+    df_cleaned.columns = [col.replace('_Cleaned', '') for col in df_cleaned.columns]
+else:
+    print("Không tìm thấy cột _Cleaned nào. Không thể tạo DataFrame cleaned.")
+    df_cleaned = pd.DataFrame() # Create an empty DataFrame
 
 # Bước 3: Tạo index thời gian đầy đủ
 # Use the min and max dates from the cleaned data if available,
 # otherwise use default dates. This makes the range dynamic.
-start_date = df_cleaned.index.min() if not df_cleaned.empty else '2012-01-03'
-end_date = df_cleaned.index.max() if not df_cleaned.empty else '2017-05-26'
+start_date = df_cleaned.index.min() if not df_cleaned.empty else '03/01/2012'
+end_date = df_cleaned.index.max() if not df_cleaned.empty else '05/26/2017'
+print("\n Xử lý lại mảng dữ liệu ngày đầy đủ...")
+print(f"Ngày bắt đầu: {start_date}")
+print(f"Ngày kết thúc: {end_date}") 
+
 full_dates = pd.date_range(start=start_date, end=end_date, freq='D')
 # Now reindex should work as df_cleaned index is unique
 df_full = df_cleaned.reindex(full_dates)
@@ -152,87 +206,134 @@ if not missing_days[missing_days > 0].empty:
 else:
     print("\nKhông có giá trị NaN nào trong các cột sau khi reindex.")
 
+## ----- Start thêm dữ liệu thiếu
 
-# Bước 4: Xác định các khoảng NaN liên tiếp > 2 ngày
-def find_long_missing_streaks(series, threshold=2):
+def find_nan_streaks(series):
     is_nan = series.isna()
-    if is_nan.all(): # Handle the case where the whole series is NaN
-        return pd.Series(False, index=series.index) # No long streaks if all are NaN (or handle as needed)
-    nan_groups = (is_nan != is_nan.shift()).cumsum()
-    nan_groups = nan_groups[is_nan]
-    if nan_groups.empty: # Handle case with no NaN values
-        return pd.Series(False, index=series.index)
-    group_counts = nan_groups.value_counts()
-    long_groups = group_counts[group_counts > threshold].index
-    long_streak_mask = nan_groups.isin(long_groups)
-    # Reindex the mask to the original series index to ensure correct alignment
-    return long_streak_mask.reindex(series.index, fill_value=False)
+    streaks = []
+    start = None
+    for i, (idx, val) in enumerate(is_nan.items()):
+        if val and start is None:
+            start = idx
+        elif not val and start is not None:
+            end = is_nan.index[i-1]
+            length = (end - start).days + 1
+            # Only include indices within the streak (from start to end)
+            streak_indices = series.index[(series.index >= start) & (series.index <= end)]
+            streaks.append((start, end, length, list(streak_indices)))
+            start = None
+    if start is not None:
+        end = is_nan.index[-1]
+        length = (end - start).days + 1
+        # Only include indices within the streak (from start to end)
+        streak_indices = series.index[(series.index >= start) & (series.index <= end)]
+        streaks.append((start, end, length, list(streak_indices)))
+    return streaks
 
+# Step 4: Process missing data
+def process_missing_data(df):
+    df_processed = df.copy()    
+    print("\n--- Starting missing data processing ---")
+    for col in df_processed.columns:
+        print(f"Processing column: {col}")
+        series = df_processed[col]
+        is_nan = series.isna()
 
-# Bước 5: Xử lý dữ liệu bị thiếu
-df_processed = df_full.copy()
+        if not is_nan.any():
+            print(f"  Column '{col}' has no missing values. Skipping.")
+            continue
 
-for col in df_processed.columns:
-    # Áp dụng trung bình trượt bậc 5 cho *tất cả* các giá trị,
-    # bao gồm cả NaN ban đầu. Điều này sẽ tạo ra NaN cho các khoảng trống lớn.
-    # Lưu ý: rolling.mean() sẽ trả về NaN nếu cửa sổ chứa NaN.
-    # Sau đó chúng ta sẽ điền các NaN này.
-    df_processed[col] = df_full[col].rolling(window=5, min_periods=1, center=False).mean()
+        # Find NaN streaks
+        nan_streaks = find_nan_streaks(series)
+        if not nan_streaks:
+            print(f"  No consecutive missing data found in column '{col}'.")
+            continue
 
-    # Xác định các khoảng NaN liên tiếp > 2 ngày dựa trên df_full (sau reindex)
-    # Cần xác định lại mask cho df_full để đảm bảo đồng bộ
-    long_streak_mask = find_long_missing_streaks(df_full[col], threshold=2)
+        # Process each streak
+        for start_date, end_date, length, streak_indices in nan_streaks:
+                      
+            if length <= 2:
+                # Apply 5-day moving average for short streaks (e.g., weekends)
+                filled_values = {}
+                for current_nan_date in streak_indices:
+                    # Find the 5 most recent *consecutive* valid indices before current_nan_date
+                    valid_indices_before = series.index[
+                        (series.index < current_nan_date) & (~series.isna())
+                    ].sort_values(ascending=False)
+                    
+                    # Ensure consecutive valid indices
+                    consecutive_indices = []
+                    for idx in valid_indices_before:
+                        if not consecutive_indices:
+                            consecutive_indices.append(idx)
+                        else:
+                            if (consecutive_indices[-1] - idx).days == 1:
+                                consecutive_indices.append(idx)
+                            else:
+                                break
+                        if len(consecutive_indices) == 5:
+                            break
 
-    # Áp dụng forward fill cho các khoảng > 2 ngày đã xác định
-    # Chúng ta cần fillna(method='ffill') trên df_full trước khi chọn lọc
-    if long_streak_mask.any():
-         ffill_values = df_full[col].ffill()
-         # Chỉ điền ffill vào những vị trí thuộc về khoảng NaN dài ban đầu
-         # Lấy các giá trị ffilled tại các index của khoảng dài
-         df_processed.loc[long_streak_mask, col] = ffill_values.loc[long_streak_mask.index[long_streak_mask]]
+                    if len(consecutive_indices) == 5:
+                        values_for_mean = series.loc[consecutive_indices]
+                        calculated_mean = values_for_mean.mean()
+                        filled_values[current_nan_date] = calculated_mean
+                    else:
+                        # Use forward fill if not enough consecutive points
+                        last_valid = series[series.index < current_nan_date][~series[series.index < current_nan_date].isna()].iloc[-1] if not series[series.index < current_nan_date][~series[series.index < current_nan_date].isna()].empty else np.nan
+                        filled_values[current_nan_date] = last_valid
 
+                df_processed.loc[streak_indices, col] = pd.Series(filled_values)
+            
+            else:
+                # Apply forward fill (ffill) for long streaks (> 2 days)
+                last_valid = series[series.index < start_date][~series[series.index < start_date].isna()].iloc[-1] if not series[series.index < start_date][~series[series.index < start_date].isna()].empty else np.nan
+                df_processed.loc[streak_indices, col] = last_valid
 
-    # Dùng forward fill cuối cùng để xử lý NaN còn lại
-    df_processed[col] = df_processed[col].ffill()
-
-    # Dùng backward fill cuối cùng để xử lý bất kỳ NaN nào còn sót lại ở cuối chuỗi
-    df_processed[col] = df_processed[col].bfill()
-
-
-# Kiểm tra NaN sau xử lý
-missing_after_processing = df_processed.isna().sum()
-if not missing_after_processing[missing_after_processing > 0].empty:
-    print("\nSố giá trị NaN trong mỗi cột sau khi xử lý dữ liệu thiếu:")
-    print(missing_after_processing[missing_after_processing > 0])
-else:
-    print("\nKhông có giá trị NaN nào trong các cột sau khi xử lý dữ liệu thiếu.")
-
+    # Final pass: Handle remaining NaNs with ffill and bfill
+    print("\n--- Applying final ffill and bfill for remaining NaNs ---")
+    remaining_nans_before = df_processed.isna().sum().sum()
+    print(f"NaN values before final ffill/bfill: {remaining_nans_before}")
+    df_processed = df_processed.fillna(method='ffill').fillna(method='bfill')
+    
+    # Check for remaining NaNs
+    missing_after_processing = df_processed.isna().sum()
+    if missing_after_processing.any():
+        print("\nRemaining NaN values after processing:")
+        print(missing_after_processing[missing_after_processing > 0])
+    else:
+        print("\nNo NaN values remain after processing.")
+    
+    return df_processed
+# Execute the processing
+df_processed = process_missing_data(df_full)
+##------ End Xử lý Thêm dữ liệu thiếu
 
 # Vẽ biểu đồ 3: VNINDEX sau khi xử lý dữ liệu thiếu
-if vnindex_cleaned_col in df_processed.columns:
+if vnindex_col in df_processed.columns:
     plt.figure(figsize=(14, 4))
     ##df_processed['VNINDEX'].plot(title='VNINDEX After Missing Data Processing')
-    plt.plot(df_processed[vnindex_cleaned_col].index, df_processed[vnindex_cleaned_col], label=f'{vnindex_cleaned_col} After filled', alpha=0.8, color='red')
-    plt.title(f'{vnindex_cleaned_col} After Missing Data Processing')
+    plt.plot(df_processed[vnindex_col].index, df_processed[vnindex_col], label=f'{vnindex_col} After filled', alpha=0.8, color='red')
+    plt.title(f'{vnindex_col} After Missing Data Processing')
     plt.xlabel('Date')
-    plt.ylabel(vnindex_cleaned_col)
+    plt.ylabel(vnindex_col)
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-    plt.savefig(f'{vnindex_cleaned_col}_after_missing.png')
+    plt.savefig(f'{vnindex_col}_after_missing.png')
     plt.close()
-    print(f"Đã lưu biểu đồ {vnindex_cleaned_col} sau xử lý dữ liệu thiếu vào '{vnindex_cleaned_col}_after_missing.png'")
+    files.download(f'{vnindex_col}_after_missing.png')
+    print(f"Đã lưu biểu đồ {vnindex_col} sau xử lý dữ liệu thiếu vào '{vnindex_col}_after_missing.png'")
 else:
-    print(f"Không tìm thấy cột '{vnindex_cleaned_col}' trong dữ liệu đã xử lý để vẽ biểu đồ sau xử lý dữ liệu thiếu.")
-
+    print(f"Không tìm thấy cột '{vnindex_col}' trong dữ liệu đã xử lý để vẽ biểu đồ sau xử lý dữ liệu thiếu.")
 
 # In mẫu dữ liệu sau xử lý
 print("\nMẫu dữ liệu sau khi xử lý (5 dòng đầu):")
 print(df_processed.head())
 
 # Lưu File 2: Chỉ chứa cột dữ liệu đã xử lý, ghi đè tên cột gốc
-output_filename_iqr_filled = 'VNINDEX_iqr_filled.csv'
+output_filename_iqr_filled = 'VNINDEX_iqr_filled_HSG_Adjust.csv'
 df_processed.to_csv(output_filename_iqr_filled)
 print(f"\nĐã lưu dữ liệu (chỉ cột đã xử lý, tên cột gốc) vào '{output_filename_iqr_filled}'")
 # Download the file in Colab
