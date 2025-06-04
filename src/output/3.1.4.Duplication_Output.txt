@@ -1,0 +1,158 @@
+Raw data shape (VNINDEX.csv): (1342, 36)
+
+Missing values in raw data (VNINDEX.csv):
+ VNINDEX      0
+BVH          0
+CSM          0
+CTG          0
+CII          0
+DPM          0
+FLC          0
+EIB          0
+DRC          0
+FPT          0
+HAG          0
+HCM          0
+GMD          0
+HPG          0
+IJC          0
+HSG          0
+MBB          0
+MSN          0
+ITA          0
+OGC          0
+KDC          0
+PVD          0
+PPC          0
+PVT          0
+VCB          0
+SSI          0
+STB          0
+REE          0
+VIC          0
+VNM          0
+NGANHANG     0
+KHOANGSAN    0
+NANGLUONG    0
+VN30         0
+UPCOM        0
+CONGNGHE     0
+dtype: int64
+
+Max consecutive duplicates in raw data:
+VNINDEX: 369 days
+BVH: 175 days
+CSM: 120 days
+CTG: 156 days
+CII: 119 days
+DPM: 103 days
+FLC: 177 days
+EIB: 65 days
+DRC: 122 days
+FPT: 108 days
+HAG: 142 days
+HCM: 201 days
+GMD: 143 days
+HPG: 349 days
+IJC: 109 days
+HSG: 208 days
+MBB: 76 days
+MSN: 114 days
+ITA: 48 days
+OGC: 78 days
+KDC: 176 days
+PVD: 165 days
+PPC: 143 days
+PVT: 105 days
+VCB: 167 days
+SSI: 72 days
+STB: 93 days
+REE: 95 days
+VIC: 63 days
+VNM: 52 days
+NGANHANG: 1050 days
+KHOANGSAN: 848 days
+NANGLUONG: 1342 days
+VN30: 388 days
+UPCOM: 113 days
+CONGNGHE: 1284 days
+Processed data shape (VNINDEX_iqr_filled_HSG_Adjust.csv): (1971, 36)
+
+Missing values in Processed data(VNINDEX_iqr_filled_HSG_Adjust.csv):
+ VNINDEX      0
+BVH          0
+CSM          0
+CTG          0
+CII          0
+DPM          0
+FLC          0
+EIB          0
+DRC          0
+FPT          0
+HAG          0
+HCM          0
+GMD          0
+HPG          0
+IJC          0
+HSG          0
+MBB          0
+MSN          0
+ITA          0
+OGC          0
+KDC          0
+PVD          0
+PPC          0
+PVT          0
+VCB          0
+SSI          0
+STB          0
+REE          0
+VIC          0
+VNM          0
+NGANHANG     0
+KHOANGSAN    0
+NANGLUONG    0
+VN30         0
+UPCOM        0
+CONGNGHE     0
+dtype: int64
+
+Max consecutive duplicates after processing:
+VNINDEX: 7 days
+BVH: 7 days
+CSM: 7 days
+CTG: 7 days
+CII: 7 days
+DPM: 7 days
+FLC: 7 days
+EIB: 7 days
+DRC: 7 days
+FPT: 7 days
+HAG: 7 days
+HCM: 7 days
+GMD: 7 days
+HPG: 7 days
+IJC: 7 days
+HSG: 7 days
+MBB: 7 days
+MSN: 7 days
+ITA: 7 days
+OGC: 7 days
+KDC: 7 days
+PVD: 7 days
+PPC: 7 days
+PVT: 7 days
+VCB: 7 days
+SSI: 7 days
+STB: 7 days
+REE: 7 days
+VIC: 7 days
+VNM: 7 days
+NGANHANG: 7 days
+KHOANGSAN: 7 days
+NANGLUONG: 7 days
+VN30: 7 days
+UPCOM: 7 days
+CONGNGHE: 7 days
+
+Data saved to 'VNINDEX_cleaned_final.csv'
