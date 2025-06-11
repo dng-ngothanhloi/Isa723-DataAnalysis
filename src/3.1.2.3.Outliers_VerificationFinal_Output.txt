@@ -1,0 +1,14 @@
+FLC - IQR (hệ số 3.0): 33 ngoại lai (2.46%)
+HSG - IQR (hệ số 3.0): 162 ngoại lai (12.07%)
+KDC - IQR (hệ số 3.0): 0 ngoại lai (0.00%)
+PPC - IQR (hệ số 3.0): 0 ngoại lai (0.00%)
+
+Tương quan giữa các cột:
+          FLC       HSG       KDC       PPC
+FLC  1.000000 -0.285902 -0.227923 -0.222676
+HSG -0.285902  1.000000  0.904930  0.533702
+KDC -0.227923  0.904930  1.000000  0.678608
+PPC -0.222676  0.533702  0.678608  1.000000
+
+Skewness HSG_log: -0.40
+HSG_log - IQR (hệ số 3.0): 67 ngoại lai (4.99%)
